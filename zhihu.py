@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 
+import operator
 import json
 import os
 import time
@@ -238,3 +239,49 @@ def get_followers(username):
                 print string.encode('gbk', 'ignore')
             f.write(string + '\n')
     f.close()
+    
+    
+def parse_followers_education(filename):
+    # 将followers的信息从文件中提取出来，解析出教育信息
+    dict_education_item = {}    # 存储数据
+    dict_education_extra_item = {}
+    txt1 = 'no education item'
+    txt2 = 'no education-extra item'
+    filename = r'E:\PythonWorkspace\liu-xiao-liu-9-24--followers.txt'
+    f = open(filename, 'r')
+    info = f.readline()
+    num = 1 # 计数器
+    # print info.encode('gbk', 'ignore')
+    # print str(info.split('  ')[1])
+    while info:
+        print num
+        print str(info.split('  ')[0]).encode('gbk', 'ignore')
+        print info.split('  ')[1]
+        # 提取education-item
+        url = info.split('  ')[1]
+        data = s.get(url)
+        soup = BeautifulSoup(data.content, 'lxml')
+        try:
+            education_item = soup.find('span', class_='education item').string
+        except:
+            education_item = txt1
+        print education_item
+        if education_item not in dict_education_item.keys():
+            dict_education_item[education_item] = 0
+        dict_education_item[education_item] += 1
+        try:
+            education_extra_item = soup.find('span', class_='education-extra item').string
+        except:
+            education_extra_item = txt2
+        print education_extra_item
+        if education_extra_item not in dict_education_extra_item.keys():
+            dict_education_extra_item[education_extra_item] = 0
+        dict_education_extra_item[education_extra_item] += 1
+        info = f.readline()
+        num += 1
+    # 对数据进行排序输出
+    dict_education_item = sorted(dict_education_item.iteritems(), key=operator.itemgetter(1), reverse=True)
+    print str(dict_education_item).decode('unicode-escape')
+    print '\n'
+    dict_education_extra_item = sorted(dict_education_extra_item.iteritems(), key=operator.itemgetter(1), reverse=True)
+    print str(dict_education_extra_item).decode('unicode-escape')
