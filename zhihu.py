@@ -285,3 +285,74 @@ def parse_followers_education(filename):
     print '\n'
     dict_education_extra_item = sorted(dict_education_extra_item.iteritems(), key=operator.itemgetter(1), reverse=True)
     print str(dict_education_extra_item).decode('unicode-escape')
+
+
+
+def get_answer(question_num):
+    url = 'http://www.zhihu.com/question/' + str(question_num)
+    data = s.get(url)
+    soup = BeautifulSoup(data.content, 'lxml')
+    # print str(soup).encode('gbk', 'ignore')
+    title = soup.title.string.split('\n')[2]    # 问题题目
+    path = 'E://zhihu/' + title
+    if not os.path.isdir(path):
+        os.mkdir(path)
+    description = soup.find('div', {'class': 'zm-editable-content'}).strings    # 问题描述，可能多行
+    file_name = path + '/description.txt'
+    fw = open(file_name, 'w')
+    for each in description:
+        each = each + '\n'
+        fw.write(each)
+    # description = soup.find('div', {'class': 'zm-editable-content'}).get_text() # 问题描述
+        # 调用.string属性返回None（可能是因为有换行符在内的缘故）,调用get_text()方法得到了文本，但换行丢了
+    answer_num = int(soup.find('h3', {'id': 'zh-question-answer-num'}).string.split(' ')[0]) # 答案数量
+    num = 1
+    index = soup.find_all('div', {'tabindex': '-1'})
+    for i in range(len(index)):
+        try:
+            a = index[i].find('a', {'class': 'author-link'})
+            title = str(num) + '__' + a.string
+            href = 'http://www.zhihu.com' + a['href']
+        except:
+            title = str(num) + '__匿名用户'
+        answer_file_name = path + '/' + title + '__.txt'
+        fr = open(answer_file_name, 'w')
+        try:
+            answer_content = index[i].find('div', {'class': 'zm-editable-content clearfix'}).strings
+        except:
+            answer_content = ['作者修改内容通过后，回答会重新显示。如果一周内未得到有效修改，回答会自动折叠。']
+        for content in answer_content:
+            fr.write(content + '\n')
+        num += 1
+
+    _xsrf = xsrf
+    url_token = re.findall('url_token(.*)', data.content)[0][8:16]
+    # 循环次数
+    n = answer_num/20-1 if answer_num/20.0-answer_num/20 == 0 else answer_num/20
+    for i in range(1, n+1, 1):
+        # _xsrf = xsrf
+        # url_token = re.findall('url_token(.*)', data.content)[0][8:16]
+        offset = 20*i
+        params = json.dumps({"url_token": url_token, "pagesize": 20, "offset": offset})
+        payload = {"method":"next", "params": params, "_xsrf": _xsrf}
+        click_url = 'https://www.zhihu.com/node/QuestionAnswerListV2'
+        data = s.post(click_url, data=payload, headers=header_info)
+        data = json.loads(data.content)
+        for answer in data['msg']:
+            print ('正在提取第' + str(num) + '个答案......').encode('gbk', 'ignore')
+            soup1 = BeautifulSoup(answer, 'lxml')
+            try:
+                a = soup1.find('a', {'class': 'author-link'})
+                title = str(num) + '__' + a.string
+                href = 'http://www.zhihu.com' + a['href']
+            except:
+                title = str(num) + '__匿名用户'
+            answer_file_name = path + '/' + title + '__.txt'
+            fr = open(answer_file_name, 'w')
+            try:
+                answer_content = soup1.find('div', {'class': 'zm-editable-content clearfix'}).strings
+            except:
+                answer_content = ['作者修改内容通过后，回答会重新显示。如果一周内未得到有效修改，回答会自动折叠。']
+            for content in answer_content:
+                fr.write(content + '\n')
+            num += 1
